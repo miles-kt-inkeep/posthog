@@ -46,7 +46,7 @@ from posthog.helpers.encrypted_flag_payloads import (
     get_decrypted_flag_payloads_protected,
 )
 from posthog.metrics import TOMBSTONE_COUNTER
-from posthog.models import FeatureFlag, Tag
+from posthog.models import FeatureFlag, Tag, Team
 from posthog.models.activity_logging.activity_log import Detail, changes_between, load_activity, log_activity
 from posthog.models.activity_logging.activity_page import ActivityLogPaginatedResponseSerializer, activity_page_response
 from posthog.models.activity_logging.model_activity import ImpersonatedContext
@@ -359,6 +359,7 @@ class FeatureFlagSerializer(
         required=False,
         queryset=Dashboard.objects.all(),
     )
+    is_used_in_replay_settings = serializers.SerializerMethodField()
 
     name = serializers.CharField(
         required=False,
@@ -420,6 +421,7 @@ class FeatureFlagSerializer(
             "last_called_at",
             "_create_in_folder",
             "_should_create_usage_dashboard",
+            "is_used_in_replay_settings",
         ]
 
     def get_can_edit(self, feature_flag: FeatureFlag) -> bool:
@@ -445,6 +447,13 @@ class FeatureFlagSerializer(
 
         return SurveyAPISerializer(feature_flag.surveys_linked_flag, many=True).data
         # ignoring type because mypy doesn't know about the surveys_linked_flag `related_name` relationship
+
+    def get_is_used_in_replay_settings(self, feature_flag: FeatureFlag) -> bool:
+        """Check if this feature flag is used in any team's session recording linked flag setting."""
+        return Team.objects.filter(
+            project_id=feature_flag.team.project_id,
+            session_recording_linked_flag__id=feature_flag.id,
+        ).exists()
 
     def validate(self, attrs):
         """Validate feature flag creation/update including evaluation tag requirements."""
@@ -869,6 +878,15 @@ class FeatureFlagSerializer(
                 raise exceptions.ValidationError(
                     f"Cannot delete this feature flag because other flags depend on it: {', '.join(dependent_flag_names)}. "
                     f"Please update or delete the dependent flags first."
+                )
+
+            # Check if flag is used in session replay settings
+            if Team.objects.filter(
+                project_id=instance.team.project_id,
+                session_recording_linked_flag__id=instance.id,
+            ).exists():
+                raise exceptions.ValidationError(
+                    "This feature flag is used in session replay settings. Please remove it from replay settings before deleting."
                 )
 
             # If all experiments are soft-deleted, rename the key to free it up
