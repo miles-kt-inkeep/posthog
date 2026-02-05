@@ -16,7 +16,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Trigger Inkeep Agent
-              uses: inkeep/inkeep-agents-action@39c725a2bf4d24acb89ae70139e13bf50f637c20 # v0.6.0
+              uses: inkeep/inkeep-agents-action@v0.3.0
               with:
                   trigger-url: 'https://inkeep-agents.ngrok.io/run/tenants/default/projects/content-team-project/agents/docs-writer-agent/triggers/8ndy2z6qjlfrbk1rva024'
                   # Filters out PRs that dont match the given regex. Update regex as desired or remove entirely
