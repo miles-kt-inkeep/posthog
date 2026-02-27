@@ -35,7 +35,7 @@ This document explains how the Rust feature flags service tracks usage for billi
 
 ## Step 1: Redis counter increment (Rust service)
 
-When a feature flag request is processed, the Rust service increments Redis counters to track usage.
+When a feature flag request is processed, the Rust service increments Redis counters to track usage. This step is skipped when the `SKIP_WRITES` config option is enabled (env `SKIP_WRITES=true`, default `false`). See [SKIP_WRITES mode](#skip_writes-mode) for details.
 
 **Source files:**
 
@@ -241,6 +241,7 @@ AND has([%(validity_token)s], replaceRegexpAll(JSONExtractRaw(properties, 'token
 | 10x local evaluation weight      | Local evaluation returns full flag definitions, requiring more server resources    |
 | Selective billing                | Survey and product tour flags are internal features, not customer-billable         |
 | SDK breakdown for analytics only | Billing charges per request regardless of SDK; breakdown is for internal analytics |
+| `SKIP_WRITES` mode               | Allows mirrored production traffic testing without affecting billing data or persisted state |
 
 ## Billing service processing
 
@@ -253,6 +254,27 @@ The usage report is sent daily to the billing service (`billing.posthog.com`), w
 5. **Triggers** usage limit emails (80%, 100% thresholds) and spike detection
 
 The SDK breakdown (`sdk_breakdown` property) is stored in the events but not used by billing. Customers are charged per request regardless of which SDK made the request.
+
+## SKIP_WRITES mode
+
+The `SKIP_WRITES` configuration option (env `SKIP_WRITES`, default `false`) disables all write operations in the feature flags service. When enabled, the service logs a warning at startup and operates in read-only mode. Flag evaluation still works normally – only writes are suppressed.
+
+This mode exists to support testing with mirrored production traffic during the personhog migration. By disabling writes, a mirrored deployment can serve real flag evaluation requests without affecting billing data or persisted state.
+
+### What is skipped
+
+| Write operation | Location | Behavior when `SKIP_WRITES=true` |
+| --- | --- | --- |
+| Redis billing counter increment (`/flags`) | `handler/billing.rs` – `record_usage()` | Early return, counter not incremented |
+| Redis billing counter increment (`/flags/definitions`) | `api/flag_definitions.rs` – `flags_definitions()` | Conditional skip, counter not incremented |
+| PostgreSQL hash key override write | `flags/flag_matching.rs` – `process_hash_key_override()` | Logged at debug level and skipped; reads for existing overrides still execute |
+
+### What still works
+
+- Flag evaluation and matching logic
+- Reading flag definitions from PostgreSQL and Redis
+- Reading existing hash key overrides from PostgreSQL
+- All other read operations
 
 ## Debugging
 
