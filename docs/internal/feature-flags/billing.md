@@ -269,13 +269,6 @@ This mode exists to support testing with mirrored production traffic during the 
 | Redis billing counter increment (`/flags/definitions`) | `api/flag_definitions.rs` – `flags_definitions()` | Conditional skip, counter not incremented |
 | PostgreSQL hash key override write | `flags/flag_matching.rs` – `process_hash_key_override()` | Logged at debug level and skipped; reads for existing overrides still execute |
 
-### What still works
-
-- Flag evaluation and matching logic
-- Reading flag definitions from PostgreSQL and Redis
-- Reading existing hash key overrides from PostgreSQL
-- All other read operations
-
 ## Debugging
 
 ### Check Redis counters
