@@ -284,6 +284,7 @@ All values come from environment variables via the `envconfig` crate. Defined in
 | `MAXMIND_DB_PATH`                        | `share/GeoLite2-City.mmdb` | GeoIP database path                    |
 | `OPTIMIZE_EXPERIENCE_CONTINUITY_LOOKUPS` | `true`                     | Skip DB lookups for 100%-rollout flags |
 | `FLAGS_SESSION_REPLAY_QUOTA_CHECK`       | `false`                    | Check session replay quota             |
+| `SKIP_WRITES`                            | `false`                    | Disables all writes to PostgreSQL and Redis. Aliases writer pools to reader pools for safe read-only performance testing. Logs a warning at startup when enabled. |
 
 ## Key dependencies
 
