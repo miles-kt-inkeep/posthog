@@ -23,7 +23,7 @@ jobs:
         if: |
             !contains(github.actor, '[bot]') &&
             (
-              (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+              (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.user.login != 'inkeep[bot]') ||
               (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '@inkeep')) ||
               (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@inkeep')) ||
               (github.event_name == 'pull_request_review' && contains(github.event.review.body || '', '@inkeep'))
