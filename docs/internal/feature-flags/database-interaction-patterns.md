@@ -22,6 +22,16 @@ The service uses a four-pool architecture to separate concerns and optimize for 
 
 When the persons database is not configured separately, the persons pools alias to the non-persons pools, effectively creating a two-pool architecture.
 
+### Read-only mode (SKIP_WRITES)
+
+When `SKIP_WRITES=true`, the service runs in read-only mode:
+
+- Writer pools alias to reader pools (no separate writer connections are created)
+- PostgreSQL hash key override writes are skipped
+- Redis billing counter writes are skipped
+
+This mode is used for safely testing migrations (like personhog) with mirrored production traffic without risking data mutations. A warning is logged at startup when enabled.
+
 ## Connection pooling
 
 ### Pool configuration
@@ -258,6 +268,7 @@ Queries exceeding 500ms are logged at WARN level with timing information.
 | `NON_PERSONS_READER_STATEMENT_TIMEOUT_MS` | 0 (disabled) | Statement timeout for non-persons reads         |
 | `PERSONS_READER_STATEMENT_TIMEOUT_MS`     | 0 (disabled) | Statement timeout for persons reads             |
 | `WRITER_STATEMENT_TIMEOUT_MS`             | 0 (disabled) | Statement timeout for writes                    |
+| `SKIP_WRITES`                             | `false`      | Run in read-only mode (aliases writers to readers)  |
 
 ### Tuning guidance
 
